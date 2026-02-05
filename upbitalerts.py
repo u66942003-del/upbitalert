@@ -46,9 +46,12 @@ def save_users(users):
 class UpbitScraper:
     def __init__(self):
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+
 
         self.driver = webdriver.Chrome(options=chrome_options)
         self.lock = asyncio.Lock()
@@ -63,7 +66,8 @@ class UpbitScraper:
             "html.parser",
             parse_only=SoupStrainer("table", class_="css-8atqhb"),
         )
-        print(soup)
+        print("hello")
+        print(len(soup))
 
         notice = soup.select_one('span.css-v2zw8h')
 
@@ -180,4 +184,5 @@ async def main():
 # ============================================
 if __name__ == "__main__":
     asyncio.run(main())
+
 
