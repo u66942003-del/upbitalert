@@ -63,10 +63,10 @@ class UpbitScraper:
             "html.parser",
             parse_only=SoupStrainer("table", class_="css-8atqhb"),
         )
+        print(soup)
 
         notice = soup.select_one('span.css-v2zw8h')
 
-        print(notice.get_text(strip=True))
 
 
 
@@ -180,3 +180,4 @@ async def main():
 # ============================================
 if __name__ == "__main__":
     asyncio.run(main())
+
