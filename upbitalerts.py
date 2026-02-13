@@ -325,8 +325,8 @@ class MultiUserChannelMonitor:
             # Build alert message with timestamp
             alert_text = (
                 f"🔔 <b>New Alert from {channel_username}</b>\n\n"
-                f"🕐 <b>Time:</b> {time_display}\n"
-                f"📅 <b>Date:</b> {date_display}\n\n"
+                f"🕐 <b>Time:</b> {time_str}\n"
+               
             )
 
             if message.text:
@@ -428,3 +428,4 @@ if __name__ == '__main__':
         os.system("pip install python-telegram-bot --break-system-packages")
 
     asyncio.run(main())
+
