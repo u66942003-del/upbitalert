@@ -1,3 +1,5 @@
-
+telethon>=3.8.0
+python-telegram-bot>=20.0
+pytz>=2023.3
 aiohttp>=3.8.0
 
