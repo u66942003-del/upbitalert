@@ -1,111 +1,81 @@
-import random
-
-import aiohttp
 import asyncio
-import time
+from telethon import TelegramClient, events
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from datetime import datetime
+import pytz
 
-# ---------------- CONFIG ----------------
-UPBIT_URL = "https://api-manager.upbit.com/api/v1/announcements"
-UPBIT_PARAMS = {
-    "os": "web",
-    "page": 1,
-    "per_page": 1,
-    "category": "all"
-}
+# ===== TELETHON (USER ACCOUNT) =====
+api_id = 38073577
+api_hash = "9cc605c61a1c5c136dde8ffd82827917"
+UPBIT_CHANNEL = "upbit_news"
 
+# ===== BOT TOKEN =====
 BOT_TOKEN = "8414741935:AAHrQxNw9iFHZxf-5syA6uG2lFyJzKVHQ_A"
-TG_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
-# ----------------------------------------
 
-last_title = None                  # title used as unique ID
-subscribers = set()                # chat_ids auto-collected
+# ===== TIMEZONE =====
+IST = pytz.timezone("Asia/Kolkata")
 
+# ===== STORE USERS =====
+subscribed_users = set()
 
-# -------- Telegram handling --------
-async def poll_telegram(session):
-    offset = None
+# ================= BOT COMMAND =================
 
-    while True:
-        params = {"timeout": 30}
-        if offset:
-            params["offset"] = offset
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    subscribed_users.add(chat_id)
 
-        async with session.get(f"{TG_API}/getUpdates", params=params) as resp:
-            data = await resp.json()
-
-        for update in data.get("result", []):
-            offset = update["update_id"] + 1
-
-            message = update.get("message")
-            if not message:
-                continue
-
-            chat_id = message["chat"]["id"]
-            text = message.get("text", "")
-
-            if text == "/start":
-                subscribers.add(chat_id)
-                await send_message(session, chat_id, "✅ You are subscribed to Upbit alerts.")
-
-        await asyncio.sleep(0.1)
-
-
-async def send_message(session, chat_id, text):
-    await session.post(
-        f"{TG_API}/sendMessage",
-        json={"chat_id": chat_id, "text": text}
+    await update.message.reply_text(
+        "✅ You are now subscribed to Upbit announcement alerts!"
     )
 
+# ================= TELETHON LISTENER =================
 
-# -------- Upbit polling --------
-async def poll_upbit(session):
-    global last_title
+async def telethon_listener(bot_app):
+    client = TelegramClient("session_name", api_id, api_hash)
+    await client.start()
 
-    while True:
-        try:
-            start = time.perf_counter()
+    print("Listening for announcements...")
 
-            async with session.get(UPBIT_URL, params=UPBIT_PARAMS) as resp:
-                data = await resp.json()
+    @client.on(events.NewMessage(chats=UPBIT_CHANNEL))
+    async def handler(event):
+        message_text = event.raw_text
+        now_ist = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
 
-            notice = data["data"]["notices"][0]
-            title = notice["title"].replace(" ", "")
+        alert_message = f"""
+🚨 NEW UPBIT ANNOUNCEMENT 🚨
 
-            if last_title is None:
-                last_title = title
-                print("Initialized with:", title)
+🕒 Received (IST): {now_ist}
 
+📢 Message:
+{message_text}
+"""
 
-            elif title != last_title:
-                print("🚨 NEW ANNOUNCEMENT:", notice["title"])
+        # Send to all subscribed users
+        for user in subscribed_users:
+            try:
+                await bot_app.bot.send_message(chat_id=user, text=alert_message)
+            except:
+                pass
 
-                for chat_id in subscribers:
-                    await send_message(
-                        session,
-                        chat_id,
-                        f"🚨 New Upbit Announcement 🚨\n\n{notice['title']}"
-                    )
+        print("Alert sent to users at:", now_ist)
 
-                last_title = title
+    await client.run_until_disconnected()
 
-            end = time.perf_counter()
-            print(f"⏱️ {end - start:.4f}s")
+# ================= MAIN =================
 
-        except Exception as e:
-            print("Upbit error:", e)
-
-        rnd=random.randint(40,55)
-
-
-        await asyncio.sleep(rnd/100)  # your polling speed
-
-
-# -------- Main --------
 async def main():
-    async with aiohttp.ClientSession() as session:
-        await asyncio.gather(
-            poll_telegram(session),
-            poll_upbit(session)
-        )
+    # Start Telegram Bot
+    bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
+    bot_app.add_handler(CommandHandler("start", start))
+
+    # Run both bot + telethon together
+    await bot_app.initialize()
+    await bot_app.start()
+
+    await asyncio.gather(
+        telethon_listener(bot_app),
+        bot_app.updater.start_polling()
+    )
 
 asyncio.run(main())
