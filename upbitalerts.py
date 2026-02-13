@@ -12,8 +12,9 @@ async def fetch_data():
         async with session.get(
             "https://api-manager.upbit.com/api/v1/announcements?os=web&page=1&per_page=1&category=all"
         ) as resp:
-            text = await resp.text()
-            print(text)
+            res = await resp.json()
+            print(res["data"]["notices"][0]["title"])
 
 asyncio.run(fetch_data())
+
 
