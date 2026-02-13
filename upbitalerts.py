@@ -32,7 +32,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= TELETHON LISTENER =================
 
 async def telethon_listener(bot_app):
-    client = TelegramClient("session_name", api_id, api_hash)
+    client = TelegramClient("bot", api_id, api_hash).start(bot_token=BOT_TOKEN)
     await client.start()
 
     print("Listening for announcements...")
@@ -79,3 +79,4 @@ async def main():
     )
 
 asyncio.run(main())
+
